@@ -1,0 +1,6 @@
+{
+  "name": "Aquora",
+  "description": "Aquaculture meets Technology — Connected ESP32 pond monitoring, farmer software, and smart aquaculture systems for fish farmers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
