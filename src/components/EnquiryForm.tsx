@@ -35,6 +35,22 @@ export function EnquiryForm() {
     }
   }, [confirmation]);
 
+  const buildMailtoHref = () => {
+    const subject = encodeURIComponent(`[Aquora Enquiry] ${topic} — ${fullName || 'Website Visitor'}`);
+    const body = encodeURIComponent(
+      [
+        `Name: ${fullName}`,
+        `Email: ${email}`,
+        `Phone: ${phone || 'Not provided'}`,
+        `Farm / Organization: ${organization || 'Not provided'}`,
+        `Topic: ${topic}`,
+        '',
+        message,
+      ].join('\n')
+    );
+    return `mailto:otuyasky11@gmail.com?subject=${subject}&body=${body}`;
+  };
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setServerError(null);
@@ -57,10 +73,16 @@ export function EnquiryForm() {
     setErrors({});
     setIsSubmitting(true);
 
+    const customEndpoint = import.meta.env.VITE_FORMSPREE_ENDPOINT as string | undefined;
+    const endpoint = customEndpoint?.trim() || '/api/enquiries';
+
     try {
-      const response = await fetch('/api/enquiries', {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify({
           fullName,
           email,
@@ -72,19 +94,26 @@ export function EnquiryForm() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await response.json() : null;
 
       if (!response.ok) {
-        if (data.errors) {
+        if (data?.errors) {
           setErrors(data.errors);
         }
-        setServerError(data.message || 'Unable to submit enquiry. Please review your details.');
+        setServerError(
+          data?.message ||
+            'Unable to reach the enquiry service right now. You can send your message directly to otuyasky11@gmail.com using the link below.'
+        );
         return;
       }
 
       setConfirmation({
-        referenceId: data.referenceId,
-        message: data.message,
+        referenceId:
+          data?.referenceId || `AQ-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
+        message:
+          data?.message ||
+          'Thank you for contacting Aquora. Our team has received your enquiry and will respond via email or phone.',
         fullName: validation.sanitized.fullName || fullName,
         topic: validation.sanitized.topic || topic,
       });
@@ -98,7 +127,7 @@ export function EnquiryForm() {
       setWebsiteUrl('');
     } catch {
       setServerError(
-        'Network error while submitting your enquiry. You can also reach us directly at otuyasky11@gmail.com.'
+        'Could not connect to the enquiry service. You can send your message directly to otuyasky11@gmail.com using the link below.'
       );
     } finally {
       setIsSubmitting(false);
@@ -173,7 +202,15 @@ export function EnquiryForm() {
           className="flex items-start gap-2.5 p-3.5 rounded-md bg-[#ff6f61]/15 border border-[#ff6f61] text-sm text-[#184435]"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#184435]" aria-hidden="true" />
-          <span>{serverError}</span>
+          <div className="space-y-1.5">
+            <p>{serverError}</p>
+            <a
+              href={buildMailtoHref()}
+              className="inline-block font-semibold underline text-[#184435] hover:text-[#1b7895]"
+            >
+              Open pre-filled email to otuyasky11@gmail.com
+            </a>
+          </div>
         </div>
       )}
 

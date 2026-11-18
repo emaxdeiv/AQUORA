@@ -34,6 +34,15 @@ All factual company statements, product descriptions, MVP prototype disclosures,
 
 ## 4. Deployment & Domain Guidance (`www.aquora.ng`)
 
+### Vercel Deployment
+The repository includes `vercel.json` (SPA route rewrites + security headers) and Vercel Serverless Functions under `api/enquiries.ts` and `api/health.ts`.
+1. Deploy the project to Vercel with the default `npm run build` command and `dist` output directory.
+2. To forward submitted enquiries directly to `otuyasky11@gmail.com` instead of only logging them in function logs, configure **either**:
+   - `RESEND_API_KEY` (and optional `ENQUIRY_TO_EMAIL=otuyasky11@gmail.com`) in Vercel Project Environment Variables, **or**
+   - `ENQUIRY_WEBHOOK_URL` (e.g. Formspree, Make, or Zapier webhook), **or**
+   - `VITE_FORMSPREE_ENDPOINT` for direct client-side Formspree submission.
+
+### Node / Cloud Run Deployment
 1. Set `NODE_ENV=production` and `PORT=3000` (or platform-assigned port) in deployment environment variables.
 2. Build with `npm run build` and launch with `npm start`.
 3. Terminate HTTPS at your reverse proxy / hosting platform (Cloud Run, Nginx, Cloudflare) with HTTP-to-HTTPS redirect enabled.
@@ -43,5 +52,4 @@ All factual company statements, product descriptions, MVP prototype disclosures,
 
 - **Brand Guide Cream (RayYellow) Hex**: Because the original 2026 Brand Guide PDF file was not present in the workspace, `#FAF7EE` / `#F1ECE0` warm cream neutrals were chosen and should be verified against the master brand document.
 - **Telegraf Webfont**: `'Telegraf'` is declared first in `--font-body` with `'DM Sans'` loaded via Google Fonts as a reliable open fallback. If licensed `PP Telegraf` `.woff2` files are provided, add `@font-face` rules in `src/index.css` pointing to `/public/fonts/`.
-- **Logo SVG**: `src/components/BrandLogo.tsx` implements the protective ring + fish tail emblem from the specification; swap in the exact vector export from the 2026 Brand Guide if a master SVG file is supplied.
-- **Enquiry Persistence**: `/api/enquiries` validates, spam-checks, and logs submissions in server memory; connect an email relay or database before production launch to persist enquiries externally.
+- **Enquiry Persistence**: Without `RESEND_API_KEY` or `ENQUIRY_WEBHOOK_URL` set, `/api/enquiries` validates and logs submissions in server/function logs; set one of those variables in production so every enquiry is delivered externally.

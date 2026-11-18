@@ -49,7 +49,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Enquiry submission endpoint with validation, honeypot check, and rate limiting
-app.post('/api/enquiries', (req, res) => {
+app.post('/api/enquiries', async (req, res) => {
   const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
   const timestamps = (ipRequestLog.get(clientIp) || []).filter(
@@ -96,6 +96,34 @@ app.post('/api/enquiries', (req, res) => {
   };
 
   submittedEnquiries.push(record);
+
+  try {
+    if (process.env.ENQUIRY_WEBHOOK_URL) {
+      await fetch(process.env.ENQUIRY_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(record),
+      });
+    }
+    if (process.env.RESEND_API_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.ENQUIRY_FROM_EMAIL || 'Aquora Website <onboarding@resend.dev>',
+          to: [process.env.ENQUIRY_TO_EMAIL || 'otuyasky11@gmail.com'],
+          reply_to: record.email,
+          subject: `[Aquora Enquiry ${record.referenceId}] ${record.topic} — ${record.fullName}`,
+          text: `From: ${record.fullName} (${record.email})\nPhone: ${record.phone || 'N/A'}\nOrganization: ${record.organization || 'N/A'}\nTopic: ${record.topic}\n\n${record.message}`,
+        }),
+      });
+    }
+  } catch (err) {
+    console.error('Failed to forward enquiry notification:', err);
+  }
 
   res.status(201).json({
     ok: true,
